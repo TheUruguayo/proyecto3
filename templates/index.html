@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Mi Aplicación Flask</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <style>
+        .video_feed {
+            display: flex;
+            justify-content: center; /* Centra horizontalmente */
+            align-items: center; /* Centra verticalmente */
+            height: 100vh; /* Ajusta la altura para centrar verticalmente */
+        }
+        body {
+            background-color: #222222; /* Cambia el color de fondo de la página */
+        }
+        .video_feed img.streaming {
+            max-width: 100%;
+        }
+        .manage-users-button {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Estilos para el cuadro de diálogo modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.7);
+        }
+
+        .modal-content {
+            background-color: #fff;
+            margin: 20% auto;
+            padding: 20px;
+            width: 60%;
+            border-radius: 5px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.5);
+        }
+
+        /* Estilos para la lista scrollable */
+        .user-list {
+            max-height: 200px; /* Altura máxima de la lista */
+            overflow-y: auto; /* Habilita la barra de desplazamiento vertical si es necesario */
+            border: 1px solid #ddd;
+            padding: 10px;
+        }
+
+        /* Estilos para la sección de grabaciones de video */
+        .video-recordings {
+            display: none;
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+            width: 300px;
+            background-color: #f5f5f5;
+            border: 1px solid #ddd;
+            padding: 10px;
+            box-shadow: 0px 0px 10px rgba(0,0,0,0.5);
+        }
+
+        .show-recordings-button {
+            position: absolute;
+            right: 10px;
+            bottom: 10px;
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <img class="logo" src="{{ url_for('static', filename='media/logo-idatha-negro.png') }}">
+    <div class="video_feed">
+        <img class="streaming" src="{{ url_for('video_feed') }}">
+    </div>
+
+
+    <button class="manage-users-button" id="manage-users-button">Manage Users</button>
+
+    <!-- Cuadro de diálogo modal -->
+    <div class="modal" id="user-modal">
+        <div class="modal-content">
+            <span id="close-modal-button" class="close-button">×</span>
+            <h2>Ingresa tu dirección de email y rol</h2>
+            <input type="email" id="user-email" placeholder="Email">
+            <select id="user-role">
+                <option value="User">User</option>
+                <option value="Admin">Admin</option>
+            </select>
+            <button id="submit-email-button">Enviar</button>
+            <button id="delete-email-button">Borrar usuario</button>
+            <span id="error-message"></span>
+            <h3>Usuarios existentes:</h3>
+            <ul class="user-list" id="user-list">
+                <!-- La lista de usuarios se generará aquí dinámicamente con JavaScript -->
+            </ul>
+        </div>
+    </div>
+
+    <!-- Botón "Show Recordings" y sección de grabaciones -->
+    <button class="show-recordings-button" id="show-recordings-button">Show Recordings</button>
+    <div class="video-recordings" id="video-recordings">
+        <!-- Aquí puedes mostrar las grabaciones de video -->
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <script>
+        $(document).ready(function() {
+            // Ejemplo de datos de usuarios en un array
+            var usersData = [
+                {"username": "email1@ejemplo.com", "role": "Admin"},
+                {"username": "email2@ejemplo.com", "role": "User"}
+                // Puedes agregar más usuarios aquí
+            ];
+
+            // Función para generar la lista de usuarios
+            function generateUserList() {
+                var userList = $("#user-list");
+                userList.empty();  // Limpia la lista existente
+
+                // Agregar los usuarios existentes
+                for (var i = 0; i < usersData.length; i++) {
+                    var userData = usersData[i];
+                    var listItem = $("<li>").text(userData.username + " - " + userData.role);
+                    userList.append(listItem);
+                }
+            }
+
+            // Función para manejar el clic en el botón "Enviar"
+            $("#submit-email-button").click(function() {
+                // Captura el valor del email y el rol seleccionado
+                var userEmail = $("#user-email").val();
+                var userRole = $("#user-role").val();
+
+                var emailFormat = /\S+@\S+\.\S+/;
+                if (!emailFormat.test(userEmail)) {
+                    // El formato del correo electrónico no es válido
+                    $("#error-message").text("Formato de correo electrónico no válido").css("color", "red").css("display", "block");
+                    return; // No continúa si el formato no es válido
+                }
+
+                // Verificar si el usuario ya existe
+                var userExists = false;
+                var userExistswSameRole = false;
+                usersData.forEach(function(user, index) {
+                    if (user.username === userEmail) {
+                        userExists = true;
+                        // Si existe, actualiza el rol si es diferente
+                        if (user.role === userRole) {
+                            userExistswSameRole = true;
+                        }
+                        return false; // Sal del bucle si el usuario ya se encontró
+                    }
+                });
+
+                if (userExists && userExistswSameRole) {
+                    // Usuario ya existe, muestra un mensaje de error
+                    $("#error-message").text("El usuario ya existe!").css("color", "red").css("display", "block");
+                } else if (userExists && !userExistswSameRole) {
+                    $("#error-message").text("Se ha cambiado el rol de este usuario").css("color", "black").css("display", "block");
+                    // Usuario ya existe con un rol diferente, cambia el rol
+                    for (var i = 0; i < usersData.length; i++) {
+                        if (usersData[i].username === userEmail) {
+                            usersData[i].role = userRole;
+                            break; // Sal del bucle una vez que se haya actualizado el rol
+                        }
+                    }
+                } else {
+                    // Usuario no existe, agrega el nuevo usuario a la lista
+                    usersData.push({"username": userEmail, "role": userRole});
+                    // Limpia el mensaje de error
+                    $("#error-message").text("").css("color", "red");
+                }
+                // Generar la lista actualizada
+                generateUserList();
+            });
+
+            $("#delete-email-button").click(function() {
+                // Captura el valor del email que se desea eliminar
+                var emailToDelete = $("#user-email").val();
+
+                // Verifica si el usuario existe en usersData
+                var userExists = usersData.some(function(user) {
+                    return user.username === emailToDelete;
+                });
+
+                if (userExists) {
+                    // El usuario existe, eliminarlo de usersData
+                    usersData = usersData.filter(function(user) {
+                        return user.username !== emailToDelete;
+                    });
+
+                    // Limpia el mensaje de error
+                    $("#error-message").text("Usuario eliminado!").css("color", "red").css("display", "block");
+                } else {
+                    // El usuario no existe
+                    $("#error-message").text("Usuario no existe.").css("color", "red").css("display", "block");
+                }
+
+                // Generar la lista actualizada
+                generateUserList();
+            });
+
+            // Función para cargar y mostrar las grabaciones de video
+            function loadAndShowRecordings() {
+                $.ajax({
+                    type: "GET",
+                    url: "/get_recordings",
+                    success: function(response) {
+                        // Mostrar las grabaciones de video en la sección correspondiente
+                        $("#video-recordings").html(response);
+                        $("#video-recordings").slideDown(); // Mostrar la sección con animación de deslizamiento
+                    },
+                    error: function(error) {
+                        console.error("Error al obtener las grabaciones de video: " + JSON.stringify(error));
+                    }
+                });
+            }
+
+            // Captura el clic en el botón "Manage Users" para abrir el cuadro de diálogo modal y generar la lista
+            $("#manage-users-button").click(function() {
+                generateUserList();
+                $("#user-modal").css("display", "block");
+            });
+
+            // Captura el clic en el botón "Show Recordings" para cargar y mostrar las grabaciones de video
+            $("#show-recordings-button").click(function() {
+                loadAndShowRecordings();
+            });
+
+            // Captura el clic en el botón "Manage Users" para abrir el cuadro de diálogo modal y generar la lista
+            $("#manage-users-button").click(function () {
+                generateUserList();
+                $("#user-modal").css("display", "block");
+            });
+
+            // Captura el clic en el botón de cierre
+            $("#close-modal-button").click(function () {
+                $("#user-modal").css("display", "none");
+            });
+
+            // Cierra el cuadro de diálogo haciendo clic fuera de él
+            $(window).click(function (event) {
+                if (event.target == document.getElementById('user-modal')) {
+                    $("#user-modal").css("display", "none");
+                }
+            });
+        });
+    </script>
+</body>
+</html>
