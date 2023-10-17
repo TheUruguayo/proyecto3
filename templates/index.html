@@ -68,7 +68,17 @@
             padding: 10px;
             box-shadow: 0px 0px 10px rgba(0,0,0,0.5);
         }
-
+        .reload-model-button {
+            position: absolute;
+            left: 50%;
+            transform: translateX(-50%);
+            bottom: 10px;
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+        }
         .show-recordings-button {
             position: absolute;
             right: 10px;
@@ -109,6 +119,8 @@
             </ul>
         </div>
     </div>
+
+    <button class="reload-model-button" id="reload-model-button">Reload Model</button>
 
     <!-- Botón "Show Recordings" y sección de grabaciones -->
     <button class="show-recordings-button" id="show-recordings-button">Show Recordings</button>
@@ -257,6 +269,21 @@
                 if (event.target == document.getElementById('user-modal')) {
                     $("#user-modal").css("display", "none");
                 }
+            });
+
+            $("#reload-model-button").click(function() {
+                // Realiza una solicitud al endpoint "reload_model"
+                $.ajax({
+                    type: "GET",
+                    url: "/reload_model",
+                    success: function(response) {
+                        // Puedes manejar la respuesta si es necesario
+                        console.log("Model reloaded successfully");
+                    },
+                    error: function(error) {
+                        console.error("Error al recargar el modelo: " + JSON.stringify(error));
+                    }
+                });
             });
         });
     </script>
