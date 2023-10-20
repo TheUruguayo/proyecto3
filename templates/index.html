@@ -32,15 +32,18 @@
         .modal {
             display: none;
             position: fixed;
-            top: 0;
+            top: 10%;
             left: 0;
             width: 100%;
             height: 100%;
             background-color: rgba(0,0,0,0.7);
+            transform: translateY(-50%); /* Ajusta la posición verticalmente */
         }
 
         .modal-content {
             background-color: #fff;
+            {#margin-left: 20%;#}
+            {#margin-top: 10%;#}
             margin: 20% auto;
             padding: 20px;
             width: 60%;
@@ -89,29 +92,102 @@
             border: none;
             cursor: pointer;
         }
+
+        .video-feed {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #222222;
+        }
+
+        .video-container {
+            display: inline-block;
+            padding: 10px;
+            text-align: center; /* Centra horizontalmente el contenido */
+        }
+
+        img.streaming {
+            max-width: 100%;
+        }
+
+        .model-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.5);
+            color: #fff;
+            padding: 10px;
+            font-size: 16px;
+            overflow: hidden; /* Oculta el desbordamiento del texto */
+        }
+
+        .model-text p {
+            margin: 0; /* Elimina el margen predeterminado del párrafo */
+        }
+
+        .user-menu {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: #fff;
+            border: 1px solid #ccc;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .user-options {
+            display: none;
+            position: absolute;
+            background: #fff;
+            border: 1px solid #ccc;
+            padding: 5px;
+            border-radius: 5px;
+            top: 100%;
+            right: 0;
+        }
+
+        .user-menu:hover .user-options {
+            display: block;
+        }
+
+
     </style>
 </head>
 <body>
     <img class="logo" src="{{ url_for('static', filename='media/logo-idatha-negro.png') }}">
-    <div class="video_feed">
-        <img class="streaming" src="{{ url_for('video_feed') }}">
+    <div class="user-menu">
+        <span id="user-name">User: {{ username }}</span>
+        <div class="user-options">
+            <a id="logout-link" href="/logout">Log Out</a>
+        </div>
     </div>
 
-
+    <div class="video-feed">
+        <div class="video-container">
+            <div class="model-text">
+                {{ model_text }}
+            </div>
+            <img class="streaming" src="{{ url_for('video_feed') }}">
+        </div>
+    </div>
+{#    <div class="video-feed">#}
+{#        <div class="video-container">#}
+{#            <div class="model-text">#}
+{#                {{ model_text }}#}
+{#            </div>#}
+{#            <img class="streaming" id="video-feed-img" src="">#}
+{#        </div>#}
+{#    </div>#}
     <button class="manage-users-button" id="manage-users-button">Manage Users</button>
 
     <!-- Cuadro de diálogo modal -->
     <div class="modal" id="user-modal">
         <div class="modal-content">
-            <span id="close-modal-button" class="close-button">×</span>
             <h2>Ingresa tu dirección de email y rol</h2>
             <input type="email" id="user-email" placeholder="Email">
-            <select id="user-role">
-                <option value="User">User</option>
-                <option value="Admin">Admin</option>
-            </select>
-            <button id="submit-email-button">Enviar</button>
-            <button id="delete-email-button">Borrar usuario</button>
+            <button id="add-user-button">Agregar usuario</button>
+            <button id="delete-user-button">Borrar usuario</button>
             <span id="error-message"></span>
             <h3>Usuarios existentes:</h3>
             <ul class="user-list" id="user-list">
@@ -131,105 +207,155 @@
     <script src="{{ url_for('static', filename='script.js') }}"></script>
     <script>
         $(document).ready(function() {
-            // Ejemplo de datos de usuarios en un array
-            var usersData = [
-                {"username": "email1@ejemplo.com", "role": "Admin"},
-                {"username": "email2@ejemplo.com", "role": "User"}
-                // Puedes agregar más usuarios aquí
-            ];
+            var claveSecreta = "{{ clave_secreta }}";
 
-            // Función para generar la lista de usuarios
-            function generateUserList() {
-                var userList = $("#user-list");
-                userList.empty();  // Limpia la lista existente
+            // Obtén el elemento de nombre de usuario y el enlace de cierre de sesión
+            var userNameElement = document.getElementById("user-name");
+            var logoutLink = document.getElementById("logout-link");
 
-                // Agregar los usuarios existentes
-                for (var i = 0; i < usersData.length; i++) {
-                    var userData = usersData[i];
-                    var listItem = $("<li>").text(userData.username + " - " + userData.role);
-                    userList.append(listItem);
-                }
-            }
-
-            // Función para manejar el clic en el botón "Enviar"
-            $("#submit-email-button").click(function() {
-                // Captura el valor del email y el rol seleccionado
-                var userEmail = $("#user-email").val();
-                var userRole = $("#user-role").val();
-
-                var emailFormat = /\S+@\S+\.\S+/;
-                if (!emailFormat.test(userEmail)) {
-                    // El formato del correo electrónico no es válido
-                    $("#error-message").text("Formato de correo electrónico no válido").css("color", "red").css("display", "block");
-                    return; // No continúa si el formato no es válido
-                }
-
-                // Verificar si el usuario ya existe
-                var userExists = false;
-                var userExistswSameRole = false;
-                usersData.forEach(function(user, index) {
-                    if (user.username === userEmail) {
-                        userExists = true;
-                        // Si existe, actualiza el rol si es diferente
-                        if (user.role === userRole) {
-                            userExistswSameRole = true;
-                        }
-                        return false; // Sal del bucle si el usuario ya se encontró
+            // Agrega un evento de clic al enlace de cierre de sesión
+            logoutLink.addEventListener("click", function(event) {
+                event.preventDefault(); // Evita que el enlace navegue a la página de cierre de sesión
+                // Realiza una solicitud para cerrar la sesión
+                $.ajax({
+                    type: "GET",
+                    url: "/logout",
+                    success: function(response) {
+                        // Redirige o realiza otras acciones necesarias después del cierre de sesión
+                        window.location.href = "/"; // Redirige a la página de inicio, por ejemplo
+                    },
+                    error: function(error) {
+                        console.error("Error al cerrar la sesión: " + JSON.stringify(error));
                     }
                 });
-
-                if (userExists && userExistswSameRole) {
-                    // Usuario ya existe, muestra un mensaje de error
-                    $("#error-message").text("El usuario ya existe!").css("color", "red").css("display", "block");
-                } else if (userExists && !userExistswSameRole) {
-                    $("#error-message").text("Se ha cambiado el rol de este usuario").css("color", "black").css("display", "block");
-                    // Usuario ya existe con un rol diferente, cambia el rol
-                    for (var i = 0; i < usersData.length; i++) {
-                        if (usersData[i].username === userEmail) {
-                            usersData[i].role = userRole;
-                            break; // Sal del bucle una vez que se haya actualizado el rol
-                        }
-                    }
-                } else {
-                    // Usuario no existe, agrega el nuevo usuario a la lista
-                    usersData.push({"username": userEmail, "role": userRole});
-                    // Limpia el mensaje de error
-                    $("#error-message").text("").css("color", "red");
-                }
-                // Generar la lista actualizada
-                generateUserList();
             });
 
-            $("#delete-email-button").click(function() {
-                // Captura el valor del email que se desea eliminar
-                var emailToDelete = $("#user-email").val();
 
-                // Verifica si el usuario existe en usersData
-                var userExists = usersData.some(function(user) {
-                    return user.username === emailToDelete;
+
+
+            // Función para generar una contraseña alfanumérica de longitud 'length'
+            function generateRandomPassword(length) {
+                var charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+                var password = "";
+                for (var i = 0; i < length; i++) {
+                    var randomIndex = Math.floor(Math.random() * charset.length);
+                    password += charset[randomIndex];
+                }
+                return "cp" + password;
+            }
+
+            // Función para cargar y mostrar los usuarios
+            function loadAndShowUsers() {
+                $.ajax({
+                    type: "GET",
+                    url: "/users/list",
+                    headers: {
+                        'X-App-Header': claveSecreta
+                    },
+                    success: function(users) {
+                        // Borra la lista existente
+                        $("#user-list").empty();
+
+                        // Agrega los usuarios a la lista
+                        users.forEach(function(user) {
+                            var listItem = $("<li>").text(user);
+                            $("#user-list").append(listItem);
+                        });
+                    },
+                    error: function(error) {
+                        console.error("Error al obtener la lista de usuarios: " + JSON.stringify(error));
+                    }
                 });
+            }
 
-                if (userExists) {
-                    // El usuario existe, eliminarlo de usersData
-                    usersData = usersData.filter(function(user) {
-                        return user.username !== emailToDelete;
-                    });
+            $("#manage-users-button").click(function() {
+                loadAndShowUsers(); // Carga y muestra la lista de usuarios
+                $("#user-modal").css("display", "block"); // Abre el cuadro de diálogo modal
+            });
 
-                    // Limpia el mensaje de error
-                    $("#error-message").text("Usuario eliminado!").css("color", "red").css("display", "block");
-                } else {
-                    // El usuario no existe
-                    $("#error-message").text("Usuario no existe.").css("color", "red").css("display", "block");
+            $("#add-user-button").click(function() {
+                var userEmail = $("#user-email").val();
+                var emailFormat = /\S+@\S+\.\S+/;
+                if (!emailFormat.test(userEmail)) {
+                    $("#error-message").text("Formato de correo electrónico no válido").css("color", "red").css("display", "block");
+                    return;
                 }
 
-                // Generar la lista actualizada
-                generateUserList();
+                //var newPassword = generateRandomPassword(8);
+                var newPassword = "{{ contrasenaSecreta }}";
+                var newUser = { username: userEmail, password: newPassword };
+
+                // Realizar una solicitud POST para agregar el nuevo usuario
+                $.ajax({
+                    type: "POST",
+                    url: "/users/add",  // Debes definir esta ruta en tu aplicación Flask
+                    data: JSON.stringify(newUser),
+                    contentType: "application/json",
+                    headers: { 'X-App-Header': claveSecreta },
+                    success: function(response) {
+                        // La respuesta puede contener información adicional, si es necesario
+                        $("#error-message").text(response.message).css("color", response.color).css("display", "block");
+                        loadAndShowUsers();  // Actualiza la lista de usuarios después de agregar uno nuevo
+                    },
+                    error: function(error) {
+                        console.error("Error al agregar el usuario: " + JSON.stringify(error));
+                        $("#error-message").text("Hubo un error al agregar el usuario").css("color", "red").css("display", "block");
+                    }
+                });
+            });
+
+            $("#delete-user-button").click(function() {
+                var userEmail = $("#user-email").val(); // Obtén el email del usuario que se desea borrar
+                var emailFormat = /\S+@\S+\.\S+/;
+                if (!emailFormat.test(userEmail)) {
+                    $("#error-message").text("Formato de correo electrónico no válido").css("color", "red").css("display", "block");
+                    return;
+                }
+                // Realiza una solicitud DELETE al servidor para borrar el usuario
+                $.ajax({
+                    type: "DELETE",
+                    url: "/users/delete",  // Debes definir esta ruta en tu aplicación Flask
+                    data: JSON.stringify({ username: userEmail }), // Envía el email del usuario a borrar
+                    contentType: "application/json",
+                    headers: { 'X-App-Header': claveSecreta },
+                    success: function(response) {
+                        // La respuesta puede contener información adicional, si es necesario
+                        $("#error-message").text(response.message).css("color", response.color).css("display", "block");
+                        loadAndShowUsers();  // Actualiza la lista de usuarios después de borrar uno
+                    },
+                    error: function(error) {
+                        console.error("Error al borrar el usuario: " + JSON.stringify(error));
+                        $("#error-message").text("Hubo un error al borrar el usuario").css("color", "red").css("display", "block");
+                    }
+                });
+            });
+
+            $("#reload-model-button").click(function() {
+                // Realiza una solicitud al endpoint "reload_model"
+                $.ajax({
+                    type: "GET",
+                    header: {
+                        'X-App-Header': claveSecreta
+                    },
+                    url: "/reload_model",
+                    success: function(response) {
+                        // Puedes manejar la respuesta si es necesario
+                        console.log("Model reloaded successfully");
+                        $(".video-container .model-text").text(response.modelName);
+                    },
+                    error: function(error) {
+                        console.error("Error al recargar el modelo: " + JSON.stringify(error));
+                    }
+                });
             });
 
             // Función para cargar y mostrar las grabaciones de video
             function loadAndShowRecordings() {
                 $.ajax({
                     type: "GET",
+                    header: {
+                        'X-App-Header': claveSecreta
+                    },
                     url: "/get_recordings",
                     success: function(response) {
                         // Mostrar las grabaciones de video en la sección correspondiente
@@ -242,49 +368,19 @@
                 });
             }
 
-            // Captura el clic en el botón "Manage Users" para abrir el cuadro de diálogo modal y generar la lista
-            $("#manage-users-button").click(function() {
-                generateUserList();
-                $("#user-modal").css("display", "block");
-            });
-
             // Captura el clic en el botón "Show Recordings" para cargar y mostrar las grabaciones de video
             $("#show-recordings-button").click(function() {
                 loadAndShowRecordings();
             });
 
-            // Captura el clic en el botón "Manage Users" para abrir el cuadro de diálogo modal y generar la lista
-            $("#manage-users-button").click(function () {
-                generateUserList();
-                $("#user-modal").css("display", "block");
-            });
-
-            // Captura el clic en el botón de cierre
-            $("#close-modal-button").click(function () {
-                $("#user-modal").css("display", "none");
-            });
-
             // Cierra el cuadro de diálogo haciendo clic fuera de él
             $(window).click(function (event) {
-                if (event.target == document.getElementById('user-modal')) {
+                if (event.target === document.getElementById('user-modal')) {
                     $("#user-modal").css("display", "none");
                 }
             });
 
-            $("#reload-model-button").click(function() {
-                // Realiza una solicitud al endpoint "reload_model"
-                $.ajax({
-                    type: "GET",
-                    url: "/reload_model",
-                    success: function(response) {
-                        // Puedes manejar la respuesta si es necesario
-                        console.log("Model reloaded successfully");
-                    },
-                    error: function(error) {
-                        console.error("Error al recargar el modelo: " + JSON.stringify(error));
-                    }
-                });
-            });
+
         });
     </script>
 </body>
