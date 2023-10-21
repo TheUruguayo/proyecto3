@@ -3,11 +3,12 @@ import os
 from pyngrok import ngrok
 import requests
 from modules.emailer import Emailer
-from dotenv import load_dotenv
-load_dotenv()
+from dotenv import load_dotenv, find_dotenv
+
 
 class ngrokTunnel():
     def __init__(self, port):
+        load_dotenv(find_dotenv())
         self.emailer = Emailer()
         self.custom_domain = os.getenv("NGROK-CUSTOM_DOMAIN")
         self.listener = None

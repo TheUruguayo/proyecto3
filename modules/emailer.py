@@ -3,11 +3,12 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.utils import formataddr
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 
-load_dotenv()
+
 class Emailer():
     def __init__(self):
+        load_dotenv(find_dotenv())
         self.smtp_server = os.getenv("EMAILER-SERVER")  # Reemplaza con tu servidor SMTP
         self.smtp_port = int(os.getenv("EMAILER-PORT"))  # El puerto puede variar según el servidor
         self.smtp_username = os.getenv("EMAILER-USERNAME")  # Tu dirección de correo electrónico

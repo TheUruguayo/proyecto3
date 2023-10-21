@@ -52,7 +52,7 @@ class Modelo():
         model_folder = "models"  # Ruta de la carpeta donde se almacenan los modelos
 
         # Verificar si el último modelo ya está en la carpeta "models"
-        folder_path = os.path.join(model_folder, self.model_version)
+        folder_path = os.path.abspath(os.path.join(model_folder, self.model_version))
 
         model_path = self.downloader.download_from_drive(folder_path)
         print(f"El path absoluto al modelo descargado es: {model_path}")

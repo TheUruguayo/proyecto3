@@ -2,9 +2,40 @@
 <html>
 <head>
     <title>Mi Aplicación Flask</title>
+{#    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.css">#}
+{#    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick-theme.min.css">#}
+{#    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>#}
+{#    <script src="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.js"></script>#}
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+{#    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">#}
     <style>
+        #user-list {
+            max-height: 100px; /* Ajusta la altura máxima según tus necesidades */
+            overflow-y: auto; /* Habilita la barra de desplazamiento vertical si es necesario */
+            border: 1px solid #ddd; /* Agrega un borde opcional */
+            padding: 10px; /* Añade un espacio interior opcional */
+        }
+
+        .button-container {
+            display: flex;
+            justify-content: space-between;
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            right: 10px;
+            margin-bottom: 10px;
+        }
+
+        .manage-users-button,
+        .reload-model-button,
+        .show-recordings-button,
+        .change-models-folder-button {
+            background-color: #007bff;
+            color: #fff;
+            padding: 10px 20px;
+            border: none;
+            cursor: pointer;
+        }
         .video_feed {
             display: flex;
             justify-content: center; /* Centra horizontalmente */
@@ -17,40 +48,61 @@
         .video_feed img.streaming {
             max-width: 100%;
         }
-        .manage-users-button {
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            background-color: #007bff;
-            color: #fff;
-            padding: 10px 20px;
-            border: none;
-            cursor: pointer;
-        }
+        {#.manage-users-button {#}
+        {#    position: absolute;#}
+        {#    bottom: 10px;#}
+        {#    left: 10px;#}
+        {#    background-color: #007bff;#}
+        {#    color: #fff;#}
+        {#    padding: 10px 20px;#}
+        {#    border: none;#}
+        {#    cursor: pointer;#}
+        {# }#}
 
         /* Estilos para el cuadro de diálogo modal */
         .modal {
             display: none;
             position: fixed;
-            top: 10%;
+            top: 0;
             left: 0;
             width: 100%;
             height: 100%;
             background-color: rgba(0,0,0,0.7);
-            transform: translateY(-50%); /* Ajusta la posición verticalmente */
+            {#transform: translateY(-50%); /* Ajusta la posición verticalmente */#}
         }
 
         .modal-content {
             background-color: #fff;
-            {#margin-left: 20%;#}
-            {#margin-top: 10%;#}
-            margin: 20% auto;
+            margin-left: 20%;
+            margin-top: 10%;
+            {#margin: 20% auto;#}
             padding: 20px;
             width: 60%;
+            height: 60%;
             border-radius: 5px;
-            box-shadow: 0px 0px 10px rgba(0,0,0,0.5);
+            box-shadow: 0 0 10px rgba(0,0,0,0.5);
+            text-align: center;
         }
-
+        #modal-change-models{
+            height: 40%;
+        }
+        #user-email{
+            width: 200px;
+            align-items: center; /* Centra verticalmente el contenido */
+            text-align: center; /* Centra horizontalmente el texto */
+            justify-content: center;
+        }
+        #models-folder-url{
+            width: 600px;
+            align-items: center; /* Centra verticalmente el contenido */
+            text-align: center; /* Centra horizontalmente el texto */
+            justify-content: center;
+        }
+        .alert-text {
+            color: red;
+            font-weight: bold;
+            margin-top: 10px;
+        }
         /* Estilos para la lista scrollable */
         .user-list {
             max-height: 200px; /* Altura máxima de la lista */
@@ -71,27 +123,27 @@
             padding: 10px;
             box-shadow: 0px 0px 10px rgba(0,0,0,0.5);
         }
-        .reload-model-button {
-            position: absolute;
-            left: 50%;
-            transform: translateX(-50%);
-            bottom: 10px;
-            background-color: #007bff;
-            color: #fff;
-            padding: 10px 20px;
-            border: none;
-            cursor: pointer;
-        }
-        .show-recordings-button {
-            position: absolute;
-            right: 10px;
-            bottom: 10px;
-            background-color: #007bff;
-            color: #fff;
-            padding: 10px 20px;
-            border: none;
-            cursor: pointer;
-        }
+        {#.reload-model-button {#}
+        {#    position: absolute;#}
+        {#    left: 50%;#}
+        {#    transform: translateX(-50%);#}
+        {#    bottom: 10px;#}
+        {#    background-color: #007bff;#}
+        {#    color: #fff;#}
+        {#    padding: 10px 20px;#}
+        {#    border: none;#}
+        {#    cursor: pointer;#}
+        {# }#}
+        {#.show-recordings-button {#}
+        {#    position: absolute;#}
+        {#    right: 10px;#}
+        {#    bottom: 10px;#}
+        {#    background-color: #007bff;#}
+        {#    color: #fff;#}
+        {#    padding: 10px 20px;#}
+        {#    border: none;#}
+        {#    cursor: pointer;#}
+        {# }#}
 
         .video-feed {
             display: flex;
@@ -151,6 +203,47 @@
             display: block;
         }
 
+        /* Estilos para el cuadro de carga */
+        .loading-overlay {
+            display: none; /* Inicialmente oculto */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); /* Fondo semitransparente */
+            justify-content: center;
+            align-items: center;
+            z-index: 9999; /* Asegúrate de que esté en la parte superior de otros elementos */
+        }
+
+        .loading-spinner {
+            border: 6px solid #f3f3f3; /* Crea un círculo vacío */
+            border-top: 6px solid #3498db; /* Agrega un borde azul en la parte superior */
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            animation: spin 2s linear infinite; /* Anima la rotación */
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #change-models-folder-modal {
+            display: none; /* Inicialmente oculto */
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.7); /* Fondo semitransparente */
+            justify-content: center;
+            align-items: center;
+            z-index: 9999; /* Asegúrate de que esté en la parte superior de otros elementos */
+        }
+
 
     </style>
 </head>
@@ -161,6 +254,10 @@
         <div class="user-options">
             <a id="logout-link" href="/logout">Log Out</a>
         </div>
+    </div>
+
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
     </div>
 
     <div class="video-feed">
@@ -179,13 +276,13 @@
 {#            <img class="streaming" id="video-feed-img" src="">#}
 {#        </div>#}
 {#    </div>#}
-    <button class="manage-users-button" id="manage-users-button">Manage Users</button>
+{#    <button class="manage-users-button" id="manage-users-button">Manage Users</button>#}
 
     <!-- Cuadro de diálogo modal -->
     <div class="modal" id="user-modal">
         <div class="modal-content">
             <h2>Ingresa tu dirección de email y rol</h2>
-            <input type="email" id="user-email" placeholder="Email">
+            <input type="email" id="user-email" placeholder="Email"> <br><br>
             <button id="add-user-button">Agregar usuario</button>
             <button id="delete-user-button">Borrar usuario</button>
             <span id="error-message"></span>
@@ -196,15 +293,34 @@
         </div>
     </div>
 
-    <button class="reload-model-button" id="reload-model-button">Reload Model</button>
+{#    <button class="reload-model-button" id="reload-model-button">Reload Model</button>#}
+{#    <button id="change-models-folder-button">Change Models Folder</button>#}
+
+    <div class="modal" id="change-models-folder-modal">
+        <div class="modal-content" id="modal-change-models">
+            <h2>Ingrese la URL de Google Drive donde se encuentran los modelos a descargar</h2>
+            <input type="text" id="models-folder-url" placeholder="URL de Google Drive">
+            <p class="alert-text">Es necesario que la carpeta de Google Drive proporcionada tenga permiso de "Editor" para cualquiera con el link.</p>
+            <button id="confirm-models-folder-button">Confirmar</button>
+            <br>
+            <span id="info-message"></span>
+        </div>
+    </div>
 
     <!-- Botón "Show Recordings" y sección de grabaciones -->
-    <button class="show-recordings-button" id="show-recordings-button">Show Recordings</button>
+{#    <button class="show-recordings-button" id="show-recordings-button">Show Recordings</button>#}
     <div class="video-recordings" id="video-recordings">
         <!-- Aquí puedes mostrar las grabaciones de video -->
     </div>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+    <div class="button-container">
+        <button class="manage-users-button" id="manage-users-button">Manage Users</button>
+        <button class="reload-model-button" id="reload-model-button">Reload Model</button>
+        <button class="change-models-folder-button" id="change-models-folder-button">Change Models Folder</button>
+        <button class="show-recordings-button" id="show-recordings-button">Show Recordings</button>
+
+    </div>
+{#    <script src="{{ url_for('static', filename='script.js') }}"></script>#}
     <script>
         $(document).ready(function() {
             var claveSecreta = "{{ clave_secreta }}";
@@ -229,20 +345,6 @@
                     }
                 });
             });
-
-
-
-
-            // Función para generar una contraseña alfanumérica de longitud 'length'
-            function generateRandomPassword(length) {
-                var charset = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-                var password = "";
-                for (var i = 0; i < length; i++) {
-                    var randomIndex = Math.floor(Math.random() * charset.length);
-                    password += charset[randomIndex];
-                }
-                return "cp" + password;
-            }
 
             // Función para cargar y mostrar los usuarios
             function loadAndShowUsers() {
@@ -271,6 +373,8 @@
             $("#manage-users-button").click(function() {
                 loadAndShowUsers(); // Carga y muestra la lista de usuarios
                 $("#user-modal").css("display", "block"); // Abre el cuadro de diálogo modal
+                $("#error-message").css("display", "none");
+                $("#user-email").text("");
             });
 
             $("#add-user-button").click(function() {
@@ -331,7 +435,7 @@
             });
 
             $("#reload-model-button").click(function() {
-                // Realiza una solicitud al endpoint "reload_model"
+                $("#loading-overlay").css("display", "flex");
                 $.ajax({
                     type: "GET",
                     header: {
@@ -342,11 +446,48 @@
                         // Puedes manejar la respuesta si es necesario
                         console.log("Model reloaded successfully");
                         $(".video-container .model-text").text(response.modelName);
+                        $("#loading-overlay").css("display", "none");
                     },
                     error: function(error) {
                         console.error("Error al recargar el modelo: " + JSON.stringify(error));
+                        $("#loading-overlay").css("display", "none");
                     }
                 });
+            });
+
+            $("#change-models-folder-button").click(function() {
+                $("#change-models-folder-modal").css("display", "block");
+                $("#info-message").css("display", "none");
+                $("#models-folder-url").text("");
+            });
+
+            $("#confirm-models-folder-button").click(function() {
+                // Aquí puedes capturar la URL de Google Drive ingresada en el cuadro de texto y realizar las acciones necesarias.
+                var modelsFolderURL = $("#models-folder-url").val();
+                var regexPattern = /folders\/([a-zA-Z0-9-_]+)/;
+                var match = modelsFolderURL.match(regexPattern);
+                if(match){
+                    var folderId = match[1];  // El ID del folder estará en el primer grupo capturado por los paréntesis
+                    console.log("Folder ID:", folderId);
+                    $.ajax({
+                        type: "POST",  // Ajusta el método HTTP según tu implementación en Flask
+                        url: "/model/change_folder",  // Ajusta la ruta de tu endpoint en Flask
+                        data: { folder_id: folderId },  // Envía el folderId como dato
+                        success: function(response) {
+                            // Puedes manejar la respuesta si es necesario
+                            console.log("Folder changed successfully");
+                            $("#info-message").text('Ahora debes hacer click en "Reload Model" para descargar el último modelo disponible').css("color", "green").css("display", "block");
+                        },
+                        error: function(error) {
+                            console.error("Error al cambiar el folder: " + JSON.stringify(error));
+                            $("#info-message").text("Error al cambiar el folder: " + JSON.stringify(error)).css("color", "red").css("display", "block");
+                        }
+                    });
+                } else {
+                    $("#info-message").text("No se encontró el Folder ID en la URL.").css("color", "red").css("display", "block");
+                }
+                // Luego puedes ocultar el pop-up modal
+                // $("#change-models-folder-modal").css("display", "none");
             });
 
             // Función para cargar y mostrar las grabaciones de video
@@ -378,6 +519,10 @@
                 if (event.target === document.getElementById('user-modal')) {
                     $("#user-modal").css("display", "none");
                 }
+                if (event.target === document.getElementById('change-models-folder-modal')) {
+                    $("#change-models-folder-modal").css("display", "none");
+                }
+
             });
 
 

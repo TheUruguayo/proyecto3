@@ -1,7 +1,7 @@
 from flask import Flask, redirect, session, request, render_template, Response, send_from_directory, flash, url_for, jsonify, make_response
 from functools import wraps
 import subprocess, re, os, bcrypt
-from dotenv import load_dotenv
+from dotenv import load_dotenv, find_dotenv
 # ------------- IMPORT MODULES ----------------------
 from modules.model import Modelo, gen_frames, reload_camera
 from modules.ngrok import ngrokTunnel
@@ -9,7 +9,7 @@ from modules.db import UsersDB
 from modules.emailer import Emailer
 # ---------------------------------------------------
 
-load_dotenv()
+load_dotenv(find_dotenv())
 
 app = Flask(__name__, template_folder="templates")
 app.secret_key = os.getenv("APP-SECRET_KEY")
@@ -20,6 +20,7 @@ emailer = Emailer()
 
 folder_id = os.getenv("DRIVE-FOLDER_ID")
 model_path = os.getenv("DRIVE-MODEL_PATH")
+print("Modelo a cargar", model_path)
 app.model = Modelo(model_path, folder_id)
 
 users_db = UsersDB(os.path.join(os.path.dirname(__file__), 'database/users.db'))
@@ -156,7 +157,23 @@ def reload():
     # return app.model.load_model_web()
     model_path, model_name = app.model.load_model_web()
     response = {'modelPath': model_path, 'modelName': model_name}
-    # os.environ["DRIVE-MODEL_PATH"] = model_name
+
+    # ######### Guarda en el código pero no persiste #####################
+    os.environ["DRIVE-MODEL_PATH"] = model_name
+    # ########## Guardar de manera persistente en variable de entorno ####
+    env_file_path = find_dotenv()
+    with open(env_file_path, "r") as env_file:
+        lines = env_file.readlines()
+
+    for i, line in enumerate(lines):
+        if line.startswith("DRIVE-MODEL_PATH="):
+            lines[i] = f"DRIVE-MODEL_PATH={model_name}\n"
+            print(lines[i])
+
+    with open(env_file_path, "w") as env_file:
+        env_file.writelines(lines)
+    ######################################################################
+    print("Se carga el modelo", os.getenv("DRIVE-MODEL_PATH"))
     return jsonify(response)
 
 @app.route('/users/change_password', methods=['GET', 'POST'])
@@ -192,6 +209,30 @@ def func_change_password():
 
     return render_template('change_password.html', username=user_logged_in)
 
+@app.route('/model/change_folder', methods=['POST'])
+def change_model_folder():
+    try:
+        folder_id = request.form["folder_id"]
+        print("Este es el nuevo folder id", folder_id)
+        # ######### Guarda en el código pero no persiste #####################
+        os.environ["DRIVE-FOLDER_ID"] = folder_id
+        # ########## Guardar de manera persistente en variable de entorno ####
+        env_file_path = find_dotenv()
+        with open(env_file_path, "r") as env_file:
+            lines = env_file.readlines()
+
+        for i, line in enumerate(lines):
+            if line.startswith("DRIVE-FOLDER_ID="):
+                lines[i] = f"DRIVE-FOLDER_ID={folder_id}\n"
+                print(lines[i])
+
+        with open(env_file_path, "w") as env_file:
+            env_file.writelines(lines)
+        ######################################################################
+        response = {"message": "Carpeta de modelos cambiada exitosamente", "success": True}
+    except Exception as e:
+        response = {"message": str(e), "success": False}
+    return jsonify(response)
 
 # @app.route('/ip_address')
 # def ip_address():
@@ -227,7 +268,7 @@ if __name__ == '__main__':
     # LOGIN DE USUARIOS
     """
     - funciona crear usuarios y verificarlo en la pantalla de login
-    * Falta boton de manejar usuarios
+    * Pronto boton de manejar usuarios
         * Agregar boton para cambiar contraseña
         * desplegar la lista de usuarios correctamente
         * sacar combo box de roles
