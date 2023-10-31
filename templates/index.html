@@ -1,284 +1,259 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Mi Aplicación Flask</title>
-{#    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.css">#}
-{#    <link rel="stylesheet" type="text/css" href="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick-theme.min.css">#}
-{#    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>#}
-{#    <script src="https://cdnjs.cloudflare.com/ajax/libs/slick-carousel/1.8.1/slick.min.js"></script>#}
+    <title>My Personal Spy Cam</title>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 {#    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">#}
     <style>
         #user-list {
-            max-height: 100px; /* Ajusta la altura máxima según tus necesidades */
-            overflow-y: auto; /* Habilita la barra de desplazamiento vertical si es necesario */
-            border: 1px solid #ddd; /* Agrega un borde opcional */
-            padding: 10px; /* Añade un espacio interior opcional */
-        }
+    max-height: 100px; /* Ajusta la altura máxima según tus necesidades */
+    overflow-y: auto; /* Habilita la barra de desplazamiento vertical si es necesario */
+    border: 1px solid #ddd; /* Agrega un borde opcional */
+    padding: 10px; /* Añade un espacio interior opcional */
+}
 
-        .button-container {
-            display: flex;
-            justify-content: space-between;
-            position: absolute;
-            bottom: 10px;
-            left: 10px;
-            right: 10px;
-            margin-bottom: 10px;
-        }
+.button-container {
+    display: flex;
+    justify-content: space-between;
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    right: 10px;
+    margin-bottom: 10px;
+}
 
-        .manage-users-button,
-        .reload-model-button,
-        .show-recordings-button,
-        .change-models-folder-button {
-            background-color: #007bff;
-            color: #fff;
-            padding: 10px 20px;
-            border: none;
-            cursor: pointer;
-        }
-        .video_feed {
-            display: flex;
-            justify-content: center; /* Centra horizontalmente */
-            align-items: center; /* Centra verticalmente */
-            height: 100vh; /* Ajusta la altura para centrar verticalmente */
-        }
-        body {
-            background-color: #222222; /* Cambia el color de fondo de la página */
-        }
-        .video_feed img.streaming {
-            max-width: 100%;
-        }
-        {#.manage-users-button {#}
-        {#    position: absolute;#}
-        {#    bottom: 10px;#}
-        {#    left: 10px;#}
-        {#    background-color: #007bff;#}
-        {#    color: #fff;#}
-        {#    padding: 10px 20px;#}
-        {#    border: none;#}
-        {#    cursor: pointer;#}
-        {# }#}
+.manage-users-button,
+.reload-model-button,
+.show-recordings-button,
+.change-models-folder-button {
+    background-color: #007bff;
+    color: #fff;
+    padding: 10px 20px;
+    border: none;
+    cursor: pointer;
+}
+body {
+    background-color: #222222; /* Cambia el color de fondo de la página */
+}
+.video_feed img.streaming {
+    max-width: 100%;
+}
+.modal {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.7);
+    z-index: 9999; /* Asegúrate de que esté en la parte superior de otros elementos */
+    /*transform: translateY(-50%); !* Ajusta la posición verticalmente *!*/
+}
 
-        /* Estilos para el cuadro de diálogo modal */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0,0,0,0.7);
-            {#transform: translateY(-50%); /* Ajusta la posición verticalmente */#}
-        }
+.modal-content {
+    background-color: #fff;
+    margin-left: 20%;
+    margin-top: 10%;
+    /*margin: 20% auto;*/
+    padding: 20px;
+    width: 60%;
+    height: 60%;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    text-align: center;
+}
+#modal-change-models{
+    height: 40%;
+}
+#user-email{
+    width: 321px;
+    align-items: center; /* Centra verticalmente el contenido */
+    text-align: center; /* Centra horizontalmente el texto */
+    justify-content: center;
+}
+#models-folder-url{
+    width: 600px;
+    align-items: center; /* Centra verticalmente el contenido */
+    text-align: center; /* Centra horizontalmente el texto */
+    justify-content: center;
+}
+.alert-text {
+    color: red;
+    font-weight: bold;
+    margin-top: 10px;
+}
+/* Estilos para la lista scrollable */
+.user-list {
+    max-height: 200px; /* Altura máxima de la lista */
+    overflow-y: auto; /* Habilita la barra de desplazamiento vertical si es necesario */
+    border: 1px solid #ddd;
+    padding: 10px;
+}
 
-        .modal-content {
-            background-color: #fff;
-            margin-left: 20%;
-            margin-top: 10%;
-            {#margin: 20% auto;#}
-            padding: 20px;
-            width: 60%;
-            height: 60%;
-            border-radius: 5px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.5);
-            text-align: center;
-        }
-        #modal-change-models{
-            height: 40%;
-        }
-        #user-email{
-            width: 200px;
-            align-items: center; /* Centra verticalmente el contenido */
-            text-align: center; /* Centra horizontalmente el texto */
-            justify-content: center;
-        }
-        #models-folder-url{
-            width: 600px;
-            align-items: center; /* Centra verticalmente el contenido */
-            text-align: center; /* Centra horizontalmente el texto */
-            justify-content: center;
-        }
-        .alert-text {
-            color: red;
-            font-weight: bold;
-            margin-top: 10px;
-        }
-        /* Estilos para la lista scrollable */
-        .user-list {
-            max-height: 200px; /* Altura máxima de la lista */
-            overflow-y: auto; /* Habilita la barra de desplazamiento vertical si es necesario */
-            border: 1px solid #ddd;
-            padding: 10px;
-        }
+/* Estilos para la sección de grabaciones de video */
+.video-recordings {
+    display: none;
+    position: absolute;
+    right: 10px;
+    bottom: 10px;
+    width: 300px;
+    background-color: #f5f5f5;
+    border: 1px solid #ddd;
+    padding: 10px;
+    box-shadow: 0px 0px 10px rgba(0,0,0,0.5);
+}
 
-        /* Estilos para la sección de grabaciones de video */
-        .video-recordings {
-            display: none;
-            position: absolute;
-            right: 10px;
-            bottom: 10px;
-            width: 300px;
-            background-color: #f5f5f5;
-            border: 1px solid #ddd;
-            padding: 10px;
-            box-shadow: 0px 0px 10px rgba(0,0,0,0.5);
-        }
-        {#.reload-model-button {#}
-        {#    position: absolute;#}
-        {#    left: 50%;#}
-        {#    transform: translateX(-50%);#}
-        {#    bottom: 10px;#}
-        {#    background-color: #007bff;#}
-        {#    color: #fff;#}
-        {#    padding: 10px 20px;#}
-        {#    border: none;#}
-        {#    cursor: pointer;#}
-        {# }#}
-        {#.show-recordings-button {#}
-        {#    position: absolute;#}
-        {#    right: 10px;#}
-        {#    bottom: 10px;#}
-        {#    background-color: #007bff;#}
-        {#    color: #fff;#}
-        {#    padding: 10px 20px;#}
-        {#    border: none;#}
-        {#    cursor: pointer;#}
-        {# }#}
+.video-feed {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #222222;
+}
 
-        .video-feed {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: #222222;
-        }
+.video-container {
+    display: inline-block;
+    padding: 10px;
+    text-align: center; /* Centra horizontalmente el contenido */
+}
 
-        .video-container {
-            display: inline-block;
-            padding: 10px;
-            text-align: center; /* Centra horizontalmente el contenido */
-        }
+img.streaming {
+    max-width: 100%;
+}
 
-        img.streaming {
-            max-width: 100%;
-        }
+.model-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    padding: 10px;
+    font-size: 16px;
+    overflow: hidden; /* Oculta el desbordamiento del texto */
+}
 
-        .model-text {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background: rgba(0, 0, 0, 0.5);
-            color: #fff;
-            padding: 10px;
-            font-size: 16px;
-            overflow: hidden; /* Oculta el desbordamiento del texto */
-        }
+.model-text p {
+    margin: 0; /* Elimina el margen predeterminado del párrafo */
+}
 
-        .model-text p {
-            margin: 0; /* Elimina el margen predeterminado del párrafo */
-        }
+.user-menu {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 5px 10px;
+    border-radius: 5px;
+    cursor: pointer;
+    width: 250px;
+    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: center;
+}
 
-        .user-menu {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            background: #fff;
-            border: 1px solid #ccc;
-            padding: 5px 10px;
-            border-radius: 5px;
-            cursor: pointer;
-        }
+.user-options {
+    display: none;
+    position: absolute;
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 5px;
+    border-radius: 5px;
+    top: 100%;
+    right: 0;
+}
 
-        .user-options {
-            display: none;
-            position: absolute;
-            background: #fff;
-            border: 1px solid #ccc;
-            padding: 5px;
-            border-radius: 5px;
-            top: 100%;
-            right: 0;
-        }
+.user-menu:hover .user-options {
+    display: flex;
+}
 
-        .user-menu:hover .user-options {
-            display: block;
-        }
+/* Estilos para el cuadro de carga */
+.loading-overlay {
+    display: none; /* Inicialmente oculto */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* Fondo semitransparente */
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; /* Asegúrate de que esté en la parte superior de otros elementos */
+}
 
-        /* Estilos para el cuadro de carga */
-        .loading-overlay {
-            display: none; /* Inicialmente oculto */
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7); /* Fondo semitransparente */
-            justify-content: center;
-            align-items: center;
-            z-index: 9999; /* Asegúrate de que esté en la parte superior de otros elementos */
-        }
+.loading-spinner {
+    border: 6px solid #f3f3f3; /* Crea un círculo vacío */
+    border-top: 6px solid #3498db; /* Agrega un borde azul en la parte superior */
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 2s linear infinite; /* Anima la rotación */
+}
 
-        .loading-spinner {
-            border: 6px solid #f3f3f3; /* Crea un círculo vacío */
-            border-top: 6px solid #3498db; /* Agrega un borde azul en la parte superior */
-            border-radius: 50%;
-            width: 50px;
-            height: 50px;
-            animation: spin 2s linear infinite; /* Anima la rotación */
-        }
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
 
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+#change-models-folder-modal {
+    display: none; /* Inicialmente oculto */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* Fondo semitransparente */
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; /* Asegúrate de que esté en la parte superior de otros elementos */
+}
 
-        #change-models-folder-modal {
-            display: none; /* Inicialmente oculto */
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background-color: rgba(0, 0, 0, 0.7); /* Fondo semitransparente */
-            justify-content: center;
-            align-items: center;
-            z-index: 9999; /* Asegúrate de que esté en la parte superior de otros elementos */
-        }
-
+.recordings-popup {
+    display: none;
+    position: fixed;
+    top: 12%;
+    left: 5%;
+    z-index: 999;
+    background: #b8b8b8;
+    padding: 20px;
+    border-radius: 5px;
+    width: 85%;
+    overflow-y: auto; /* Agrega una barra de desplazamiento vertical si es necesario */
+}
+.centered {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
 
     </style>
 </head>
 <body>
+    <!-- Logo Izquierda Superior -->
     <img class="logo" src="{{ url_for('static', filename='media/logo-idatha-negro.png') }}">
-    <div class="user-menu">
+
+    <!-- Combo Usuario Derecha Superior -->
+    <div class="user-menu" style="display: flex">
         <span id="user-name">User: {{ username }}</span>
         <div class="user-options">
             <a id="logout-link" href="/logout">Log Out</a>
         </div>
     </div>
 
-    <div id="loading-overlay" class="loading-overlay">
-        <div class="loading-spinner"></div>
-    </div>
-
+    <!-- Video feed -->
     <div class="video-feed">
         <div class="video-container">
             <div class="model-text">
                 {{ model_text }}
             </div>
-            <img class="streaming" src="{{ url_for('video_feed') }}">
+            <img class="streaming centered" src="{{ url_for('video_feed') }}">
         </div>
     </div>
-{#    <div class="video-feed">#}
-{#        <div class="video-container">#}
-{#            <div class="model-text">#}
-{#                {{ model_text }}#}
-{#            </div>#}
-{#            <img class="streaming" id="video-feed-img" src="">#}
-{#        </div>#}
-{#    </div>#}
-{#    <button class="manage-users-button" id="manage-users-button">Manage Users</button>#}
 
-    <!-- Cuadro de diálogo modal -->
+    <!-- Animación Cargando -->
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <!-- Pop up Manage Users -->
     <div class="modal" id="user-modal">
         <div class="modal-content">
             <h2>Ingresa tu dirección de email y rol</h2>
@@ -293,9 +268,7 @@
         </div>
     </div>
 
-{#    <button class="reload-model-button" id="reload-model-button">Reload Model</button>#}
-{#    <button id="change-models-folder-button">Change Models Folder</button>#}
-
+    <!-- Pop up Change Models Folder -->
     <div class="modal" id="change-models-folder-modal">
         <div class="modal-content" id="modal-change-models">
             <h2>Ingrese la URL de Google Drive donde se encuentran los modelos a descargar</h2>
@@ -307,21 +280,25 @@
         </div>
     </div>
 
-    <!-- Botón "Show Recordings" y sección de grabaciones -->
-{#    <button class="show-recordings-button" id="show-recordings-button">Show Recordings</button>#}
-    <div class="video-recordings" id="video-recordings">
-        <!-- Aquí puedes mostrar las grabaciones de video -->
+    <!-- Pop up Show Recordings -->
+    <div id="recordings-popup" class="modal">
+        <h2>Recordings</h2>
+        <div class="recordings-content">
+            <!-- Contenedor para mostrar las grabaciones -->
+        </div>
     </div>
-
+    <!-- Button Container -->
     <div class="button-container">
         <button class="manage-users-button" id="manage-users-button">Manage Users</button>
         <button class="reload-model-button" id="reload-model-button">Reload Model</button>
         <button class="change-models-folder-button" id="change-models-folder-button">Change Models Folder</button>
         <button class="show-recordings-button" id="show-recordings-button">Show Recordings</button>
-
     </div>
+
 {#    <script src="{{ url_for('static', filename='script.js') }}"></script>#}
     <script>
+        // script.js
+
         $(document).ready(function() {
             var claveSecreta = "{{ clave_secreta }}";
 
@@ -490,28 +467,56 @@
                 // $("#change-models-folder-modal").css("display", "none");
             });
 
-            // Función para cargar y mostrar las grabaciones de video
-            function loadAndShowRecordings() {
-                $.ajax({
-                    type: "GET",
-                    header: {
-                        'X-App-Header': claveSecreta
-                    },
-                    url: "/get_recordings",
-                    success: function(response) {
-                        // Mostrar las grabaciones de video en la sección correspondiente
-                        $("#video-recordings").html(response);
-                        $("#video-recordings").slideDown(); // Mostrar la sección con animación de deslizamiento
-                    },
-                    error: function(error) {
-                        console.error("Error al obtener las grabaciones de video: " + JSON.stringify(error));
-                    }
-                });
-            }
-
             // Captura el clic en el botón "Show Recordings" para cargar y mostrar las grabaciones de video
             $("#show-recordings-button").click(function() {
-                loadAndShowRecordings();
+                // Realiza una solicitud AJAX para obtener la lista de grabaciones
+                $.ajax({
+                    type: "GET",
+                    url: "/recordings/list", // Ajusta la ruta de tu endpoint en Flask para obtener la lista de grabaciones
+                    success: function(response) {
+                        // Maneja la respuesta para mostrar la lista de grabaciones en un pop-up
+                        // Puedes usar JavaScript para construir elementos HTML y mostrarlos en un pop-up modal
+                        console.log("Lista de grabaciones:", response);
+
+                        // Por cada grabación en la respuesta, crea elementos HTML para mostrar la grabación
+                        response.forEach(function(recording) {
+                            var recordingDiv = $("<div class='recording-item'></div>");
+                            {#var thumbnailImg = $("<img src='" + recording[3] + "' class='thumbnail' />");#}
+                            var name = $("<p>" + recording[1] + "</p>");
+                            var playButton = $("<button class='play-button' data-video='" + recording[2] + "'>Play</button>");
+                            var sendMailButton = $("<button class='send-mail-button' data-video='" + recording[2] + "'>Send Mail</button>");
+                            var deleteButton = $("<button class='delete-button' data-video='" + recording[2] + "'>Delete</button>");
+
+                            {#recordingDiv.append(thumbnailImg, name, playButton, sendMailButton, deleteButton);#}
+                            recordingDiv.append(name, playButton, sendMailButton, deleteButton);
+
+                            // Agrega el elemento al pop-up modal
+                            $("#recordings-popup").append(recordingDiv);
+
+                            // Asigna funciones a los botones (puedes definir estas funciones)
+                            playButton.click(function() {
+                                var videoPath = $(this).data("video");
+                                // Agrega código para reproducir el video
+                            });
+
+                            sendMailButton.click(function() {
+                                var videoPath = $(this).data("video");
+                                // Agrega código para enviar el video por correo
+                            });
+
+                            deleteButton.click(function() {
+                                var videoPath = $(this).data("video");
+                                // Agrega código para eliminar la grabación
+                            });
+                        });
+
+                        // Muestra el pop-up modal
+                        $("#recordings-popup").css("display", "block");
+                    },
+                    error: function(error) {
+                        console.error("Error al obtener la lista de grabaciones: " + JSON.stringify(error));
+                    }
+                });
             });
 
             // Cierra el cuadro de diálogo haciendo clic fuera de él
@@ -522,11 +527,14 @@
                 if (event.target === document.getElementById('change-models-folder-modal')) {
                     $("#change-models-folder-modal").css("display", "none");
                 }
-
+                if (event.target === document.getElementById('recordings-popup')) {
+                    $("#recordings-popup").css("display", "none");
+                }
             });
 
 
         });
+
     </script>
 </body>
 </html>

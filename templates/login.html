@@ -1,15 +1,45 @@
-<!-- templates/login.html -->
 <!DOCTYPE html>
 <html>
 <head>
     <title>Login</title>
+    <style>
+        body {
+            background: #222222;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+        h2, h3 {
+            color: whitesmoke;
+            text-align: center;
+        }
+        .form-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+        #input_username, #input_password {
+            text-align: center; /* Centra horizontalmente el texto */
+            width: 200px;
+        }
+        #input_login_button {
+            width: 80px;
+        }
+        .x {
+            margin-bottom: 1%;
+        }
+    </style>
 </head>
 <body>
-    <h2>Login</h2>
-    <form method="post">
-        <p><input type="text" name="username" placeholder="Username"></p>
-        <p><input type="password" name="password" placeholder="Password"></p>
-        <p><input type="submit" value="Login"></p>
+    <h2>Welcome to My Personal Spy Cam</h2>
+    <h3>Please log in to continue</h3>
+    <form method="post" class="form-container">
+        <p class="x"><input id="input_username" type="text" name="username" placeholder="Username"></p>
+        <p><input id="input_password" type="password" name="password" placeholder="Password"></p>
+        <p><input id="input_login_button" type="submit" value="Login"></p>
     </form>
 </body>
 </html>

@@ -1,19 +1,36 @@
-.video_feed {
-    /* Estilos para el div de video_feed */
+#user-list {
+    max-height: 100px; /* Ajusta la altura máxima según tus necesidades */
+    overflow-y: auto; /* Habilita la barra de desplazamiento vertical si es necesario */
+    border: 1px solid #ddd; /* Agrega un borde opcional */
+    padding: 10px; /* Añade un espacio interior opcional */
 }
 
-.manage-users-button {
+.button-container {
+    display: flex;
+    justify-content: space-between;
     position: absolute;
     bottom: 10px;
     left: 10px;
+    right: 10px;
+    margin-bottom: 10px;
+}
+
+.manage-users-button,
+.reload-model-button,
+.show-recordings-button,
+.change-models-folder-button {
     background-color: #007bff;
     color: #fff;
     padding: 10px 20px;
     border: none;
     cursor: pointer;
 }
-
-/* Estilos para el cuadro de diálogo modal */
+body {
+    background-color: #222222; /* Cambia el color de fondo de la página */
+}
+.video_feed img.streaming {
+    max-width: 100%;
+}
 .modal {
     display: none;
     position: fixed;
@@ -22,17 +39,41 @@
     width: 100%;
     height: 100%;
     background-color: rgba(0,0,0,0.7);
+    /*transform: translateY(-50%); !* Ajusta la posición verticalmente *!*/
 }
 
 .modal-content {
     background-color: #fff;
-    margin: 20% auto;
+    margin-left: 20%;
+    margin-top: 10%;
+    /*margin: 20% auto;*/
     padding: 20px;
     width: 60%;
+    height: 60%;
     border-radius: 5px;
-    box-shadow: 0px 0px 10px rgba(0,0,0,0.5);
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    text-align: center;
 }
-
+#modal-change-models{
+    height: 40%;
+}
+#user-email{
+    width: 200px;
+    align-items: center; /* Centra verticalmente el contenido */
+    text-align: center; /* Centra horizontalmente el texto */
+    justify-content: center;
+}
+#models-folder-url{
+    width: 600px;
+    align-items: center; /* Centra verticalmente el contenido */
+    text-align: center; /* Centra horizontalmente el texto */
+    justify-content: center;
+}
+.alert-text {
+    color: red;
+    font-weight: bold;
+    margin-top: 10px;
+}
 /* Estilos para la lista scrollable */
 .user-list {
     max-height: 200px; /* Altura máxima de la lista */
@@ -54,13 +95,123 @@
     box-shadow: 0px 0px 10px rgba(0,0,0,0.5);
 }
 
-.show-recordings-button {
-    position: absolute;
-    right: 10px;
-    bottom: 10px;
-    background-color: #007bff;
+.video-feed {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: #222222;
+}
+
+.video-container {
+    display: inline-block;
+    padding: 10px;
+    text-align: center; /* Centra horizontalmente el contenido */
+}
+
+img.streaming {
+    max-width: 100%;
+}
+
+.model-text {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.5);
     color: #fff;
-    padding: 10px 20px;
-    border: none;
+    padding: 10px;
+    font-size: 16px;
+    overflow: hidden; /* Oculta el desbordamiento del texto */
+}
+
+.model-text p {
+    margin: 0; /* Elimina el margen predeterminado del párrafo */
+}
+
+.user-menu {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 5px 10px;
+    border-radius: 5px;
     cursor: pointer;
+}
+
+.user-options {
+    display: none;
+    position: absolute;
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 5px;
+    border-radius: 5px;
+    top: 100%;
+    right: 0;
+}
+
+.user-menu:hover .user-options {
+    display: block;
+}
+
+/* Estilos para el cuadro de carga */
+.loading-overlay {
+    display: none; /* Inicialmente oculto */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* Fondo semitransparente */
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; /* Asegúrate de que esté en la parte superior de otros elementos */
+}
+
+.loading-spinner {
+    border: 6px solid #f3f3f3; /* Crea un círculo vacío */
+    border-top: 6px solid #3498db; /* Agrega un borde azul en la parte superior */
+    border-radius: 50%;
+    width: 50px;
+    height: 50px;
+    animation: spin 2s linear infinite; /* Anima la rotación */
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+#change-models-folder-modal {
+    display: none; /* Inicialmente oculto */
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7); /* Fondo semitransparente */
+    justify-content: center;
+    align-items: center;
+    z-index: 9999; /* Asegúrate de que esté en la parte superior de otros elementos */
+}
+
+.recordings-popup {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 999;
+}
+
+.recordings-content {
+    background: #fff;
+    max-width: 80%;
+    margin: 20px auto;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
+    height: 300px; /* Altura fija */
+    overflow-y: auto; /* Agrega una barra de desplazamiento vertical si es necesario */
 }

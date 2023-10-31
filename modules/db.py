@@ -2,7 +2,7 @@ import sqlite3, bcrypt, os
 
 class UsersDB:
     def __init__(self, db_name):
-        print("DB INIT", db_name)
+        print("USER DB INIT", db_name)
         # self.db_name = db_name
         self.db_path = db_name
 
@@ -58,7 +58,7 @@ class UsersDB:
             return None
 
     def recreate_database(self):
-        print("Borrón y tabla nueva")
+        print("Borrón y tabla de usuarios nueva")
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
 
@@ -105,3 +105,106 @@ class UsersDB:
         else:
             print(f"El usuario {username} no existe en la base de datos.")
             return False
+
+class RecordingsDB:
+    def __init__(self, db_name):
+        print("RECORDINGS DB INIT")
+        self.db_path = db_name
+
+    def create_table(self):
+        print("Se crea tabla de recordings")
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS recordings (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                video_path TEXT NOT NULL,
+                thumbnail_path TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        ''')
+        conn.commit()
+        conn.close()
+
+    def add_recording(self, name, video_path, thumbnail_path, created_at):
+        print("Se agrega nueva recording con fecha", created_at)
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("INSERT INTO recordings (name, video_path, thumbnail_path, created_at) VALUES (?, ?, ?, ?)", (name, video_path, thumbnail_path, created_at))
+        conn.commit()
+        conn.close()
+
+    def get_recordings(self):
+        print("Obteniendo las grabaciones...")
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM recordings")
+        recordings = cursor.fetchall()
+        conn.close()
+        return recordings
+
+    def get_recording_by_name(self, name):
+        print("Obteniendo grabación de nombre", name)
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM recordings WHERE name=?", (name,))
+        recording_data = cursor.fetchone()
+        conn.close()
+
+        if recording_data:
+            return {
+                "name": recording_data[1],
+                "video_path": recording_data[2],
+                "thumbnail_path": recording_data[3],
+                "created_at": recording_data[4]
+            }
+        else:
+            return None
+
+    def recreate_database(self):
+        print("Borrón y tabla de recordings nueva")
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+
+        # Elimina la tabla si ya existe
+        cursor.execute("DROP TABLE IF EXISTS recordings")
+
+        # Crea la tabla nuevamente
+        cursor.execute('''
+            CREATE TABLE IF NOT EXISTS recordings (
+                id INTEGER PRIMARY KEY,
+                name TEXT NOT NULL,
+                video_path TEXT NOT NULL,
+                thumbnail_path TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        ''')
+
+        conn.commit()
+        conn.close()
+
+    def delete_recording(self, name):
+        print("Borrando grabación de nombre", name)
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("DELETE FROM recordings WHERE name=?", (name,))
+        conn.commit()
+        conn.close()
+
+    def update_recording(self, name, video_path, thumbnail_path, created_at):
+        print("Actualizando grabación de nombre", name)
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("UPDATE recordings SET video_path=?, thumbnail_path=?, created_at=? WHERE name=?", (video_path, thumbnail_path, created_at, name))
+        conn.commit()
+        conn.close()
+
+    def get_recordings_ordered_by_date(self):
+        print("Obteniendo las grabaciones ordenadas por fecha...")
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM recordings ORDER BY created_at DESC")
+        recordings = cursor.fetchall()
+        conn.close()
+        return recordings
