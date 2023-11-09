@@ -3,7 +3,7 @@
 import tflite_runtime.interpreter as tf
 from modules.DriveDownloader import DriveDownloader
 from modules.db import RecordingsDB
-import cv2, time, os, json
+import cv2, time, os, json, threading
 from datetime import datetime
 import numpy as np
 from flask import jsonify
@@ -58,6 +58,11 @@ class Modelo():
         self.model_version = model_path
         return model_path, os.path.basename(model_path)
 
+recording = False
+frame_buffer = []
+clip_duration = 10
+clip_pre_duration = 2
+s_time = time.time()
 
 def detect_objects(frame, app):
     retorno = False # ¨Para indicar si hubo detección o no
@@ -99,6 +104,84 @@ def detect_objects(frame, app):
 
     return frame, retorno
 
+frame_count = 0
+
+def gen_frames(app, db):
+    global rawCapture, recording, frame_buffer, s_time, frame_count, total_frame_count
+
+    for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+        frame = frame.array
+        rawCapture.truncate(0)
+        frame, retort = detect_objects(frame, app)
+
+        if recording:
+            frame_buffer.append(frame)
+            frame_count += 1
+            print(len(frame_buffer), "/" ,  total_frame_count)
+            # if (time.time() - s_time) > clip_duration:
+            if len(frame_buffer) >= total_frame_count:
+                stop_recording(db)
+                frame_buffer = []
+
+        elif (not recording) and (retort):
+            start_recording(db)
+            s_time = time.time()
+            frame_buffer = []
+
+        ret, buffer = cv2.imencode('.jpg', frame)
+        frame = buffer.tobytes()
+
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+
+
+def start_recording(db):
+    global recording, clip_duration, frame_buffer
+    recording = True
+    frame_buffer = []
+    print("Comienza la grabacion")
+
+def stop_recording(db):
+    global recording
+    recording = False
+    save_video(db)
+    print("Detiene la grabación")
+
+def save_video(db):
+    global frame_buffer, camera
+    if frame_buffer:
+        current_time = time.strftime("%Y-%m-%d_%H-%M-%S")
+        aux = str(time.time()).split('.')
+        video_name = f"video_{aux[0]+aux[1]}.mp4"
+        video_path = f"{os.getenv('APP-PATH')}/static/recordings/{video_name}"
+        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+        out = cv2.VideoWriter(video_path, fourcc, float(camera.framerate), (camera.resolution[0], camera.resolution[1]))
+        for frame in frame_buffer:
+            out.write(frame)
+        out.release()
+        os.system(f"chmod 664 {video_path}")
+
+        # thumbnail_path = os.path.join(os.getenv('APP-PATH'), 'static', 'thumbnails', f'thumbnail_{aux[0]+aux[1]}.jpg')
+        thumbnail_path = os.path.join('static', 'thumbnails', f'thumbnail_{aux[0] + aux[1]}.jpg')
+        thumbnail_frame = frame_buffer[0]
+        cv2.imwrite(thumbnail_path, thumbnail_frame)
+
+        # Guarda la información en la base de datos
+        recording_entry = {
+            "name": video_name,
+            "video_path": video_path,
+            "thumbnail_path": thumbnail_path,
+            "created_at": current_time
+        }
+        db.add_recording(
+            recording_entry["name"],
+            recording_entry["video_path"],
+            recording_entry["thumbnail_path"],
+            recording_entry["created_at"]
+        )
+        frame_buffer = []
+
+
 # def gen_frames(app):
 #     global rawCapture
 #     while True:
@@ -125,100 +208,100 @@ def detect_objects(frame, app):
 #
 #             start_time = time.time()  # Reset start time for the next frame
 
-def gen_frames(app, db):
-    global rawCapture
-    recording = False
-    start_time = 0
-    recording_duration = 15
-    pre_event_duration = 2
-    frame_buffer = []
-
-    while True:
-        s_time = time.time()
-        frames_for_video = []
-
-        for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
-            frame = frame.array
-            rawCapture.truncate(0)
-            frame, ret = detect_objects(frame, app)
-
-            if ret:
-                if not recording:
-                    print("Comienza la grabación")
-                    recording = True
-                    start_time = time.time()
-                    frames_for_video = []
-
-            elapsed_time = time.time() - start_time
-            # print(elapsed_time)
-
-            if elapsed_time >= recording_duration:
-                recording = False
-                save_video(frames_for_video, db)
-                frames_for_video = []
-
-            # Calculate FPS
-            e_time = time.time() - s_time
-            fps = 1 / e_time
-            label_fps = "FPS: {:.2f}".format(fps)
-
-            # Display FPS on the top left corner of the frame
-            cv2.putText(frame, label_fps, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
-
-            ret, buffer = cv2.imencode('.jpg', frame)
-            frame = buffer.tobytes()
-
-            if recording:
-                frame_buffer.append(frame)
-                frames_for_video.append(frame)
-
-            while frame_buffer and (time.time() - start_time - pre_event_duration > 0):
-                frame_buffer.pop(0)
-
-            yield (b'--frame\r\n'
-                   b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
-
-            s_time = time.time()  # Reset start time for the next frame
-
-def save_video(frames, db):
-    if len(frames) > 0:
-        print("Comienzo a guardar video")
-        current_time = datetime.now()
-        video_name = current_time.strftime("%d-%m-%y %H-%M")
-
-        video_path = f"static/recordings/{video_name}.mp4"
-        thumbnail_path = f"static/thumbnail/{video_name}.jpg"
-
-        # Guarda el video
-        fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(video_path, fourcc, 30.0, (640, 480))
-        for frame in frames:
-            image = cv2.imdecode(np.frombuffer(frame, np.uint8), -1)
-            out.write(image)
-        out.release()
-
-        # Guarda la miniatura
-        # first_frame = cv2.imdecode(np.frombuffer(frames[0], np.uint8), -1)
-        # if first_frame is not None:
-        #     thumbnail_image = Image.fromarray(cv2.cvtColor(first_frame, cv2.COLOR_BGR2RGB))
-        #     thumbnail_image.save(thumbnail_path)
-        # else:
-        #     print("El primer frame no es válido. No se pudo generar la miniatura.")
-
-        # Agrega el registro al historial de grabaciones
-        recording_entry = {
-            "name": video_name,
-            "video_path": video_path,
-            "thumbnail_path": thumbnail_path,
-            "created_at": current_time.strftime("%Y-%m-%d %H:%M:%S")
-        }
-
-        db.add_recording(
-            recording_entry["name"],
-            recording_entry["video_path"],
-            recording_entry["thumbnail_path"],
-            recording_entry["created_at"]
-        )
+# def gen_frames(app, db):
+#     global rawCapture
+#     recording = False
+#     start_time = 0
+#     recording_duration = 15
+#     pre_event_duration = 2
+#     frame_buffer = []
+#
+#     while True:
+#         s_time = time.time()
+#         frames_for_video = []
+#
+#         for frame in camera.capture_continuous(rawCapture, format="bgr", use_video_port=True):
+#             frame = frame.array
+#             rawCapture.truncate(0)
+#             frame, ret = detect_objects(frame, app)
+#
+#             if ret:
+#                 if not recording:
+#                     print("Comienza la grabación")
+#                     recording = True
+#                     start_time = time.time()
+#                     frames_for_video = []
+#
+#             elapsed_time = time.time() - start_time
+#             # print(elapsed_time)
+#
+#             if elapsed_time >= recording_duration:
+#                 recording = False
+#                 save_video(frames_for_video, db)
+#                 frames_for_video = []
+#
+#             # Calculate FPS
+#             e_time = time.time() - s_time
+#             fps = 1 / e_time
+#             label_fps = "FPS: {:.2f}".format(fps)
+#
+#             # Display FPS on the top left corner of the frame
+#             cv2.putText(frame, label_fps, (10, 20), cv2.FONT_HERSHEY_SIMPLEX, 0.6, (0, 0, 255), 2)
+#
+#             ret, buffer = cv2.imencode('.jpg', frame)
+#             frame = buffer.tobytes()
+#
+#             if recording:
+#                 frame_buffer.append(frame)
+#                 frames_for_video.append(frame)
+#
+#             while frame_buffer and (time.time() - start_time - pre_event_duration > 0):
+#                 frame_buffer.pop(0)
+#
+#             yield (b'--frame\r\n'
+#                    b'Content-Type: image/jpeg\r\n\r\n' + frame + b'\r\n')
+#
+#             s_time = time.time()  # Reset start time for the next frame
+#
+# def save_video(frames, db):
+#     if len(frames) > 0:
+#         print("Comienzo a guardar video")
+#         current_time = datetime.now()
+#         video_name = current_time.strftime("%d-%m-%y %H-%M")
+#
+#         video_path = f"static/recordings/{video_name}.mp4"
+#         thumbnail_path = f"static/thumbnail/{video_name}.jpg"
+#
+#         # Guarda el video
+#         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
+#         out = cv2.VideoWriter(video_path, fourcc, 30.0, (640, 480))
+#         for frame in frames:
+#             image = cv2.imdecode(np.frombuffer(frame, np.uint8), -1)
+#             out.write(image)
+#         out.release()
+#
+#         # Guarda la miniatura
+#         # first_frame = cv2.imdecode(np.frombuffer(frames[0], np.uint8), -1)
+#         # if first_frame is not None:
+#         #     thumbnail_image = Image.fromarray(cv2.cvtColor(first_frame, cv2.COLOR_BGR2RGB))
+#         #     thumbnail_image.save(thumbnail_path)
+#         # else:
+#         #     print("El primer frame no es válido. No se pudo generar la miniatura.")
+#
+#         # Agrega el registro al historial de grabaciones
+#         recording_entry = {
+#             "name": video_name,
+#             "video_path": video_path,
+#             "thumbnail_path": thumbnail_path,
+#             "created_at": current_time.strftime("%Y-%m-%d %H:%M:%S")
+#         }
+#
+#         db.add_recording(
+#             recording_entry["name"],
+#             recording_entry["video_path"],
+#             recording_entry["thumbnail_path"],
+#             recording_entry["created_at"]
+#         )
 # def replay_video(video_path):
 #     try:
 #         # Abre el archivo de video
@@ -251,19 +334,14 @@ def reload_camera():
             time.sleep(1) # Espera hasta que la cámara haya liberado completamente el buffer
     camera = init_camera()
 
-def close_camera():
-    global camera
-    if camera:
-        camera.close()
-        while camera._encoders:
-            time.sleep(1) # Espera hasta que la cámara haya liberado completamente el buffer
-
 def init_camera():
     # global rawCapture
     camera = PiCamera()
     camera.resolution = (320, 240)
     camera.framerate = 30
+    time.sleep(1)
     return camera
 
 camera = init_camera()
 rawCapture = PiRGBArray(camera, size=camera.resolution)
+total_frame_count = clip_duration * camera.framerate

@@ -1,19 +1,27 @@
-from flask import Flask, redirect, session, request, render_template, Response, send_from_directory, flash, url_for, jsonify, make_response
+import glob
+
+import cv2
+from flask import Flask, redirect, session, request, render_template, Response, send_from_directory, flash, url_for, \
+    jsonify, make_response, send_file
 from functools import wraps
 import subprocess, re, os, bcrypt
 from dotenv import load_dotenv, find_dotenv
+from flask_cors import CORS
 # ------------- IMPORT MODULES ----------------------
+# from modules.model import Modelo, gen_frames, reload_camera, replay_video, generate_frames
 from modules.model import Modelo, gen_frames, reload_camera
 from modules.ngrok import ngrokTunnel
-from modules.db import UsersDB
+from modules.db import UsersDB, RecordingsDB
 from modules.emailer import Emailer
 # ---------------------------------------------------
 
 load_dotenv(find_dotenv())
 
-app = Flask(__name__, template_folder="templates")
+app = Flask(__name__, template_folder="templates", static_folder="static", static_url_path='/static')
 app.secret_key = os.getenv("APP-SECRET_KEY")
 app_port = int(os.getenv("APP-PORT"))
+cors = CORS(app, resources={r"/static/recordings/*": {"origins": "*"}})
+
 
 # ngrok_tunnel = ngrokTunnel(app_port)
 emailer = Emailer()
@@ -24,14 +32,16 @@ print("Modelo a cargar", model_path)
 app.model = Modelo(model_path, folder_id)
 
 users_db = UsersDB(os.path.join(os.path.dirname(__file__), 'database/users.db'))
-users_db.create_table()
-# users_db.recreate_database()
-users_db.add_user(os.getenv("EMAILER-USERNAME"), '123456')
+recordings_db = RecordingsDB(os.path.join(os.path.dirname(__file__), 'database/recordings.db'))
+recordings_db.create_table()
+# users_db.create_table()
+# recordings_db.recreate_database()
+# users_db.add_user(os.getenv("EMAILER-USERNAME"), '123456')
 print(users_db.get_users())
+print(recordings_db.get_recordings())
 user_logged_in = ""
 
-# pwd = os.getenv("DATABASE-SECRET_PASSWORD")
-# salt =
+
 
 @app.route('/users/add', methods=['POST'])
 def registro():
@@ -51,31 +61,13 @@ def registro():
         return jsonify({"message": "El usuario se ha agregado correctamente!", "color": "green"}), 201
     else:
         return jsonify({"message": "El usuario ya está registrado!", "color": "red"}), 201
-#
 
-# def no_es_fuente_confiable():
-#     custom_header = request.headers.get('X-App-Header')
-#     print(f"Custom header: {custom_header}")
-#     if custom_header == app.secret_key:
-#         return False
-#     else:
-#         return True
-# def protect_endpoint(f):
-#     @wraps(f)
-#     def decorated_function(*args, **kwargs):
-#         # Verifica si la solicitud proviene de una fuente confiable, como la propia aplicación
-#         if no_es_fuente_confiable():
-#             return redirect(url_for('index'))
-#         return f(*args, **kwargs)
-#     return decorated_function
 @app.route('/users/list', methods=['GET'])
-# @protect_endpoint
 def obtener_usuarios():
     users = users_db.get_users()
     return jsonify(users)
 
 @app.route('/users/delete', methods=['DELETE'])
-# @protect_endpoint
 def borrar_usuario():
     global user_logged_in
     data = request.get_json()
@@ -89,16 +81,54 @@ def borrar_usuario():
         color = "red"
     return jsonify({"message": msg, "color": color}), 200
 
+@app.route('/recordings/list', methods=['GET'])
+def obtener_recordings():
+    rec = recordings_db.get_recordings_ordered_by_date()
+    return jsonify(rec)
+
+@app.route("/recordings/delete/<path:video_path>")
+def delete_recording(video_path):
+    try:
+        rec = recordings_db.get_recording_by_videoPath(video_path)
+        recordings_db.delete_recording(rec["name"])
+        print(f"Recording de {video_path} eliminado correctamente")
+        return True, 200
+    except Exception as e:
+        print(e)
+        return False, 4040
 @app.route('/video_feed')
-# @protect_endpoint
 def video_feed():
-    return Response(gen_frames(app),
+    return Response(gen_frames(app, recordings_db),
                     mimetype='multipart/x-mixed-replace; boundary=frame')
 
+
 @app.route('/static/<path:filename>')
-# @protect_endpoint
 def serve_static(filename):
     return send_from_directory('static', 'media/logo-idatha-negro.png')
+
+@app.route('/thumbnails/<path:thumbnail_filename>')
+def serve_thumbnail(thumbnail_filename): #path relativo
+    return send_file(thumbnail_filename)
+
+@app.route('/play_video/<path:video_filename>')
+def play_video(video_filename):
+    return send_file(video_filename, as_attachment=True, mimetype='video/mp4')
+
+@app.route('/delete_video/<path:video_filename>', methods=['DELETE'])
+def delete_video(video_filename):
+    try:
+        print("DELETE", video_filename)
+        video_filename = '/' + video_filename
+        rec = recordings_db.get_recording_by_videoPath(video_filename)
+        if rec:
+            os.remove(rec['video_path'])
+            os.remove(rec['thumbnail_path'])
+            recordings_db.delete_recording(rec['name'])
+            return jsonify(success=True, message='Grabación eliminada exitosamente')
+        else:
+            return jsonify(success=False, message='La grabación no existe en la base de datos')
+    except Exception as e:
+        return jsonify(success=False, message=str(e))
 
 @app.route('/')
 def index():
@@ -132,12 +162,6 @@ def login():
                 return redirect(url_for('index'))
             else:
                 flash('Login failed!', 'danger')
-            # if username in users and users[username] == password:
-            #     session['logged_in'] = True
-            #     flash('You were successfully logged in!', 'success')
-            #     return redirect(url_for('index'))
-            # else:
-            #     flash('Login failed!', 'danger')
         return render_template('login.html')
     else:
         return redirect(url_for('index'))
@@ -149,7 +173,6 @@ def logout():
     user_logged_in = ""
     flash('You were logged out.', 'info')
     return redirect(url_for('login'))
-
 
 @app.route('/reload_model')
 # @protect_endpoint
@@ -234,48 +257,9 @@ def change_model_folder():
         response = {"message": str(e), "success": False}
     return jsonify(response)
 
-# @app.route('/ip_address')
-# def ip_address():
-#     ip_address = get_ip_address("wlan0")  # Cambia a "eth0" si es necesario
-#     if ip_address:
-#         return f"La dirección IP de la interfaz wlan0 es: {ip_address}"
-#     else:
-#         return "No se pudo obtener la dirección IP."
-#     # return f"La dirección IP es {request.remote_addr} - {request.remote_user} o {ngrok_tunnel.get_domain()}"
-#
-# def get_ip_address(interface):
-#     try:
-#         # Ejecuta el comando ifconfig y captura su salida
-#         result = subprocess.check_output(["ifconfig", interface]).decode()
-#
-#         # Utiliza una expresión regular para buscar la dirección IP en la salida
-#         ip_match = re.search(r'inet (\d+\.\d+\.\d+\.\d+)', result)
-#
-#         if ip_match:
-#             ip_address = ip_match.group(1)
-#             return ip_address
-#
-#         return None
-#     except Exception as e:
-#         # Maneja cualquier error que pueda ocurrir
-#         print("Error al obtener la dirección IP:", str(e))
-#         return None
 
 if __name__ == '__main__':
     # app.config['SERVER_NAME'] = f'{local_ip}:5000'
     app.run(host="0.0.0.0", port=app_port)
 
-    # LOGIN DE USUARIOS
-    """
-    - funciona crear usuarios y verificarlo en la pantalla de login
-    * Pronto boton de manejar usuarios
-        * Agregar boton para cambiar contraseña
-        * desplegar la lista de usuarios correctamente
-        * sacar combo box de roles
-        * agregar usuario manda mail con contraseña default
-        * contraseña default debería de tener un patron reconocible para cambiar la contraseña instantáneamente
-    """
-
     # GUARDADO DE VIDEOS
-
-    # BOTON QUE RECIBA URL DE DRIVE PARA DESCARGAR MODELOS (MODIFICAR URL DE DESCARGA)

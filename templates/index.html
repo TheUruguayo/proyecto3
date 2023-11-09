@@ -57,6 +57,7 @@ body {
     /*margin: 20% auto;*/
     padding: 20px;
     width: 60%;
+    overflow: auto;
     height: 60%;
     border-radius: 5px;
     box-shadow: 0 0 10px rgba(0,0,0,0.5);
@@ -224,6 +225,71 @@ img.streaming {
     align-items: center;
 }
 
+.recordings-list{
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    padding: 10px;
+}
+
+.recording-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px;
+    max-height: 200px;
+}
+
+.recording-name {
+    flex-grow: 1;
+    margin-right: 10px; /* Agrega un espacio a la derecha de los botones */
+}
+
+.recordings-button-container {
+    display: flex;
+}
+
+.play-button,
+.send-mail-button,
+.delete-button {
+    margin-left: 10px; /* Agrega espacio entre los botones */
+}
+
+.recording-separator {
+    margin: 10px 0; /* Agrega espacio entre las grabaciones */
+}
+.recordings-thumbnail {
+    max-width: 100px; /* Tamaño máximo de la miniatura */
+    margin-right: 10px; /* Espacio entre la miniatura y la fecha */
+}
+
+.recordings-name {
+    flex: 1; /* Expande la fecha para llenar el espacio disponible */
+    text-align: center; /* Centra horizontalmente el texto */
+}
+
+.recordings-button-container {
+    display: flex;
+    justify-content: flex-end; /* Coloca los botones en la derecha */
+    align-items: center; /* Centra verticalmente los botones */
+}
+
+.recordings-button-container button {
+    margin-left: 10px; /* Espacio entre los botones */
+}
+.recording-thumbnail{
+    max-width: 100%;
+    max-height: 100%;
+    width: 256px;
+    height: 192px;
+}
+#video-player {
+    position: absolute; /* Puedes usar "relative" o "absolute" según tus necesidades */
+    z-index: 9999; /* Un valor alto para asegurarse de que esté en la parte superior */
+    /* Otras propiedades de estilo, como ancho y altura */
+}
+
+
     </style>
 </head>
 <body>
@@ -281,12 +347,19 @@ img.streaming {
     </div>
 
     <!-- Pop up Show Recordings -->
-    <div id="recordings-popup" class="modal">
-        <h2>Recordings</h2>
-        <div class="recordings-content">
-            <!-- Contenedor para mostrar las grabaciones -->
+    <div id="recordings-popup" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Recordings</h2>
+            <div class="recordings-list">
+                <!-- Contenedor para mostrar las grabaciones -->
+            </div>
         </div>
     </div>
+
+    <video id="video-player" controls>
+        Tu navegador no soporta la reproducción de video
+    </video>
+
     <!-- Button Container -->
     <div class="button-container">
         <button class="manage-users-button" id="manage-users-button">Manage Users</button>
@@ -305,6 +378,8 @@ img.streaming {
             // Obtén el elemento de nombre de usuario y el enlace de cierre de sesión
             var userNameElement = document.getElementById("user-name");
             var logoutLink = document.getElementById("logout-link");
+
+            $("#video-player").hide();
 
             // Agrega un evento de clic al enlace de cierre de sesión
             logoutLink.addEventListener("click", function(event) {
@@ -474,39 +549,93 @@ img.streaming {
                     type: "GET",
                     url: "/recordings/list", // Ajusta la ruta de tu endpoint en Flask para obtener la lista de grabaciones
                     success: function(response) {
-                        // Maneja la respuesta para mostrar la lista de grabaciones en un pop-up
-                        // Puedes usar JavaScript para construir elementos HTML y mostrarlos en un pop-up modal
-                        console.log("Lista de grabaciones:", response);
+                        console.log(response);
+                        var recordingsDiv = $("#recordings-popup .recordings-list");
+                        recordingsDiv.empty();
 
                         // Por cada grabación en la respuesta, crea elementos HTML para mostrar la grabación
                         response.forEach(function(recording) {
-                            var recordingDiv = $("<div class='recording-item'></div>");
-                            {#var thumbnailImg = $("<img src='" + recording[3] + "' class='thumbnail' />");#}
-                            var name = $("<p>" + recording[1] + "</p>");
-                            var playButton = $("<button class='play-button' data-video='" + recording[2] + "'>Play</button>");
-                            var sendMailButton = $("<button class='send-mail-button' data-video='" + recording[2] + "'>Send Mail</button>");
+                            /*
+                            * 0: id interno (no me interesa)
+                            * 1: nombre del video "video-time.time"
+                            * 2: video path (abs)
+                            * 3: thumbnail path
+                            * 4: created at
+                            */
+
+                            var recordingItemDiv = $("<div class='recording-item'></div>");
+                            var recordingInfoDiv = $("<div class='recording-info'></div>");
+                            {#var thumbnail = $("<img class='recording-thumbnail' src='" + recording[3] + "'>");#}
+                            var thumbnail = $("<img class='recording-thumbnail' src='/thumbnails/" + encodeURIComponent(recording[3].replace(/\\/g, '/')) + "'>");
+                            var name = $("<p class='recording-name centered'>" + recording[4] + "</p>");
+                            var buttonContainer = $("<div class='recordings-button-container'></div>");
+                            var downloadButton = $("<button class='download-button' data-video='" + recording[2] + "'>Download</button>")
                             var deleteButton = $("<button class='delete-button' data-video='" + recording[2] + "'>Delete</button>");
 
-                            {#recordingDiv.append(thumbnailImg, name, playButton, sendMailButton, deleteButton);#}
-                            recordingDiv.append(name, playButton, sendMailButton, deleteButton);
+                            buttonContainer.append(downloadButton, deleteButton);
+                            recordingInfoDiv.append(thumbnail, name, buttonContainer);
+                            recordingItemDiv.append(thumbnail, name, buttonContainer);
 
-                            // Agrega el elemento al pop-up modal
-                            $("#recordings-popup").append(recordingDiv);
+                            recordingsDiv.append(recordingItemDiv);
 
+
+                            // Agrega una línea separadora después de cada grabación (excepto la última)
+                            if (response.indexOf(recording) < response.length - 1) {
+                                var separator = $("<hr class='recording-separator'>");
+                                recordingsDiv.append(separator);
+                            }
                             // Asigna funciones a los botones (puedes definir estas funciones)
-                            playButton.click(function() {
+                            downloadButton.click(function() {
                                 var videoPath = $(this).data("video");
-                                // Agrega código para reproducir el video
-                            });
+                                var parts = videoPath.split("/");
+                                var relPath = parts[parts.length - 3] + '/' + parts[parts.length - 2] + '/' + parts[parts.length - 1];
 
-                            sendMailButton.click(function() {
-                                var videoPath = $(this).data("video");
-                                // Agrega código para enviar el video por correo
+                                // Realiza una solicitud fetch para obtener el video
+                                fetch("/play_video/" + relPath)
+                                    .then(response => response.blob())
+                                    .then(blob => {
+                                        // Crea un objeto URL para el Blob
+                                        var videoUrl = URL.createObjectURL(blob);
+
+                                        // Crea un enlace temporal para la descarga
+                                        var downloadLink = document.createElement('a');
+                                        downloadLink.href = videoUrl;
+                                        downloadLink.download = parts[parts.length - 1];  // Puedes establecer el nombre del archivo aquí
+
+                                        // Añade el enlace al cuerpo del documento y simula un clic en él
+                                        document.body.appendChild(downloadLink);
+                                        downloadLink.click();
+
+                                        // Elimina el enlace después de la descarga
+                                        document.body.removeChild(downloadLink);
+
+                                        // Reproduce el video
+                                        var videoPlayer = document.getElementById("video-player");
+                                        videoPlayer.src = videoUrl;
+                                        videoPlayer.play();
+                                    })
+                                    .catch(error => console.error('Error al obtener el video:', error));
                             });
 
                             deleteButton.click(function() {
                                 var videoPath = $(this).data("video");
-                                // Agrega código para eliminar la grabación
+                                var parts = videoPath.split("/");
+                                var relPath = parts[parts.length - 3] + '/' + parts[parts.length - 2] + '/' + parts[parts.length - 1];
+
+                                fetch("/delete_video/" + videoPath, {
+                                    method: 'DELETE'
+                                })
+                                .then(response => response.json())
+                                .then(data => {
+                                    if (data.success) {
+                                        console.log(data.message);
+                                        $("#recordings-popup").css("display", "none");
+                                        alert(data.message);
+                                    } else {
+                                        console.error(data.message);
+                                    }
+                                })
+                                .catch(error => console.error('Error al eliminar el video:', error));
                             });
                         });
 
@@ -529,6 +658,7 @@ img.streaming {
                 }
                 if (event.target === document.getElementById('recordings-popup')) {
                     $("#recordings-popup").css("display", "none");
+
                 }
             });
 

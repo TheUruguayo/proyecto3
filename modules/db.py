@@ -144,6 +144,24 @@ class RecordingsDB:
         conn.close()
         return recordings
 
+    def get_recording_by_videoPath(self, videoPath):
+        print("Obteniendo grabación de path", videoPath)
+        conn = sqlite3.connect(self.db_path)
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM recordings WHERE video_path=?", (videoPath,))
+        recording_data = cursor.fetchone()
+        conn.close()
+
+        if recording_data:
+            return {
+                "name": recording_data[1],
+                "video_path": recording_data[2],
+                "thumbnail_path": recording_data[3],
+                "created_at": recording_data[4]
+            }
+        else:
+            return None
+
     def get_recording_by_name(self, name):
         print("Obteniendo grabación de nombre", name)
         conn = sqlite3.connect(self.db_path)
