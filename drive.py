@@ -8,7 +8,6 @@ import subprocess, re, os, bcrypt
 from dotenv import load_dotenv, find_dotenv
 from flask_cors import CORS
 # ------------- IMPORT MODULES ----------------------
-# from modules.model import Modelo, gen_frames, reload_camera, replay_video, generate_frames
 from modules.model import Modelo, gen_frames, reload_camera
 from modules.ngrok import ngrokTunnel
 from modules.db import UsersDB, RecordingsDB
@@ -23,7 +22,7 @@ app_port = int(os.getenv("APP-PORT"))
 cors = CORS(app, resources={r"/static/recordings/*": {"origins": "*"}})
 
 
-# ngrok_tunnel = ngrokTunnel(app_port)
+ngrok_tunnel = ngrokTunnel(app_port)
 emailer = Emailer()
 
 folder_id = os.getenv("DRIVE-FOLDER_ID")
@@ -33,12 +32,12 @@ app.model = Modelo(model_path, folder_id)
 
 users_db = UsersDB(os.path.join(os.path.dirname(__file__), 'database/users.db'))
 recordings_db = RecordingsDB(os.path.join(os.path.dirname(__file__), 'database/recordings.db'))
-recordings_db.create_table()
+# recordings_db.create_table()
 # users_db.create_table()
 # recordings_db.recreate_database()
 # users_db.add_user(os.getenv("EMAILER-USERNAME"), '123456')
-print(users_db.get_users())
-print(recordings_db.get_recordings())
+
+
 user_logged_in = ""
 
 

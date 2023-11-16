@@ -37,7 +37,6 @@ class Emailer():
                     """
             msg.attach(MIMEText(html_content, 'html'))
         elif subject == "add_user":
-            print(content)
             from_name = 'My Personal Spy Cam'
             # to_email = self.smtp_username
             subject = 'New User Added'

@@ -28,7 +28,6 @@ class DriveDownloader:
 
     def _download_file(self, file_id, filename):
         request = self.service.files().get_media(fileId=file_id)
-        print(f"download file path: {filename}")
         fh = io.FileIO(filename, 'wb')
         downloader = MediaIoBaseDownload(fh, request)
 
@@ -40,20 +39,15 @@ class DriveDownloader:
     def download_from_drive(self, folder_path):
         load_dotenv(find_dotenv())
         folder_id = os.getenv("DRIVE-FOLDER_ID")
-        print("DriveDownloader - folderId", folder_id)
         app_path = os.getenv("APP-PATH")
         newest_file = self._list_files_in_folder(folder_id)
 
         if newest_file:
             file_name = newest_file['name']
             download_path = os.path.join(f"{app_path}/models", file_name)
-            # download_path = os.path.join("/models", file_name)
-            print(f"Download Path: {download_path} - Folder Path: {folder_path}")
 
             if download_path == folder_path:
-                print("Elimino el archivo existente de mismo nombre")
                 os.remove(download_path)
-            # download_path = os.path.join(f"{app_path}/models", file_name)
             self._download_file(newest_file['id'], download_path)
 
             return os.path.abspath(download_path)

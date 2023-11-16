@@ -39,6 +39,7 @@ body {
     width: 100%;
     height: 100%;
     background-color: rgba(0,0,0,0.7);
+    z-index: 9999; /* Asegúrate de que esté en la parte superior de otros elementos */
     /*transform: translateY(-50%); !* Ajusta la posición verticalmente *!*/
 }
 
@@ -49,6 +50,7 @@ body {
     /*margin: 20% auto;*/
     padding: 20px;
     width: 60%;
+    overflow: auto;
     height: 60%;
     border-radius: 5px;
     box-shadow: 0 0 10px rgba(0,0,0,0.5);
@@ -58,7 +60,7 @@ body {
     height: 40%;
 }
 #user-email{
-    width: 200px;
+    width: 321px;
     align-items: center; /* Centra verticalmente el contenido */
     text-align: center; /* Centra horizontalmente el texto */
     justify-content: center;
@@ -136,6 +138,10 @@ img.streaming {
     padding: 5px 10px;
     border-radius: 5px;
     cursor: pointer;
+    width: 250px;
+    flex-wrap: wrap;
+    flex-direction: column;
+    align-items: center;
 }
 
 .user-options {
@@ -150,7 +156,7 @@ img.streaming {
 }
 
 .user-menu:hover .user-options {
-    display: block;
+    display: flex;
 }
 
 /* Estilos para el cuadro de carga */
@@ -197,21 +203,82 @@ img.streaming {
 .recordings-popup {
     display: none;
     position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
+    top: 12%;
+    left: 5%;
     z-index: 999;
-}
-
-.recordings-content {
-    background: #fff;
-    max-width: 80%;
-    margin: 20px auto;
+    background: #b8b8b8;
     padding: 20px;
     border-radius: 5px;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.3);
-    height: 300px; /* Altura fija */
+    width: 85%;
     overflow-y: auto; /* Agrega una barra de desplazamiento vertical si es necesario */
 }
+.centered {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.recordings-list{
+    max-height: 400px;
+    overflow-y: auto;
+    border: 1px solid #ddd;
+    padding: 10px;
+}
+
+.recording-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 5px;
+    max-height: 200px;
+}
+
+.recording-name {
+    flex-grow: 1;
+    margin-right: 10px; /* Agrega un espacio a la derecha de los botones */
+}
+
+.recordings-button-container {
+    display: flex;
+}
+
+.play-button,
+.send-mail-button,
+.delete-button {
+    margin-left: 10px; /* Agrega espacio entre los botones */
+}
+
+.recording-separator {
+    margin: 10px 0; /* Agrega espacio entre las grabaciones */
+}
+.recordings-thumbnail {
+    max-width: 100px; /* Tamaño máximo de la miniatura */
+    margin-right: 10px; /* Espacio entre la miniatura y la fecha */
+}
+
+.recordings-name {
+    flex: 1; /* Expande la fecha para llenar el espacio disponible */
+    text-align: center; /* Centra horizontalmente el texto */
+}
+
+.recordings-button-container {
+    display: flex;
+    justify-content: flex-end; /* Coloca los botones en la derecha */
+    align-items: center; /* Centra verticalmente los botones */
+}
+
+.recordings-button-container button {
+    margin-left: 10px; /* Espacio entre los botones */
+}
+.recording-thumbnail{
+    max-width: 100%;
+    max-height: 100%;
+    width: 256px;
+    height: 192px;
+}
+#video-player {
+    position: absolute; /* Puedes usar "relative" o "absolute" según tus necesidades */
+    z-index: 9999; /* Un valor alto para asegurarse de que esté en la parte superior */
+    /* Otras propiedades de estilo, como ancho y altura */
+}
+
